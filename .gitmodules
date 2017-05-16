@@ -1,0 +1,3 @@
+[submodule "ext/flist"]
+	path = ext/flist
+	url = https://github.com/pfrankw/flist.git
