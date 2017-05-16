@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <flist/flist.h>
+
 #include <fev/config.h>
 
 // Events
@@ -28,7 +30,6 @@ struct fev_io {
     uint8_t rev; // Events set by select()/poll() wrapper
     fev_io_cb cb; // Callback if event
     void *arg;
-    struct fev_io *next;
 };
 
 struct fev_timer {
@@ -37,13 +38,13 @@ struct fev_timer {
     uint16_t flags;
     fev_timer_cb cb;
     void *arg;
-    struct fev_timer *next;
 };
 
 typedef struct fev{
 
-    struct fev_io *io;
-    struct fev_timer *timer;
+    uint64_t cl;
+    flist_t *io;
+    flist_t *timers;
 
 } fev_t;
 

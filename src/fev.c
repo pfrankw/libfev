@@ -4,7 +4,7 @@
 #include "fev/time.h"
 
 static void io_free_all(fev_t *fev);
-static void timer_free_all(fev_t *fev)
+static void timer_free_all(fev_t *fev);
 
 
 int fev_init(fev_t *fev)
@@ -83,7 +83,7 @@ static void timer_free_all(fev_t *fev)
 {
     flist_node_t *cur = 0;
 
-    for (cur = fev->timer->start; cur; cur = cur->next)
+    for (cur = fev->timers->start; cur; cur = cur->next)
         timer_free(cur->item);
 }
 
@@ -137,28 +137,34 @@ void fev_del_timer(fev_t *fev, struct fev_timer *timer)
     flist_remove(fev->timers, timer);
 }
 
-static void run_timers(fev_t *fev)
+static int run_timer_cb(flist_node_t *timer_node, void *arg)
 {
-    size_t i;
-    uint64_t cl;
-    flist_node_t *cur = 0;
-
-    cl = fev_clock();
+    fev_t *fev = arg;
+    struct fev_timer *timer = timer_node->item;
 
 
-    for (cur = fev->timers->start; cur; cur = cur->next) {
+    if ((fev->cl - timer->last_call) >= timer->interval) {
 
-        struct fev_timer *timer = cur->item;
+        timer->cb(timer->arg);
 
-        if (cl-timer->last_call > timer->interval)
+        if (timer->flags & FEV_TIMER_FLAG_ONCE)
+            fev_del_timer(fev, timer);
+        else
+            timer->last_call = fev->cl;
 
     }
 
+    return 0;
+}
 
+static void run_timers(fev_t *fev)
+{
+    flist_iterate(fev->timers, run_timer_cb, fev);
 }
 
 void fev_run(fev_t *fev)
 {
+    fev->cl = fev_clock();
     run_timers(fev);
     //fev_io_poll(fev);
 }
