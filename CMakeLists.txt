@@ -15,7 +15,7 @@ endif()
 
 message("Current CMake build type is ${CMAKE_BUILD_TYPE}")
 
-include_directories("include")
+include_directories("include" "ext/flist/include")
 link_directories("${LIBRARY_OUTPUT_PATH}")
 
 add_subdirectory(src)
