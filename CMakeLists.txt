@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project("fev" C)
+project("libfev" C)
 
 SET(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/build/bin")
 SET(LIBRARY_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/build/lib")
