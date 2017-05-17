@@ -1,3 +1,6 @@
 [submodule "ext/flist"]
 	path = ext/flist
 	url = https://github.com/pfrankw/flist.git
+[submodule "ext/libflist"]
+	path = ext/libflist
+	url = https://github.com/pfrankw/libflist.git

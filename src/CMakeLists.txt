@@ -1,1 +1,1 @@
-add_library(fev fev.c time.c ../ext/flist/src/flist.c)
+add_library(fev fev.c time.c ../ext/libflist/src/flist.c)
