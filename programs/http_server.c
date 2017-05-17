@@ -15,17 +15,14 @@ static int accept_fd( int *bind_fd,
                         void *client_ip, size_t buf_size, size_t *ip_len )
 {
     int ret;
-    int type;
 
     struct sockaddr_storage client_addr;
 
 #if defined(__socklen_t_defined) || defined(_SOCKLEN_T) ||  \
     defined(_SOCKLEN_T_DECLARED) || defined(__DEFINED_socklen_t)
     socklen_t n = (socklen_t) sizeof( client_addr );
-    socklen_t type_len = (socklen_t) sizeof( type );
 #else
     int n = (int) sizeof( client_addr );
-    int type_len = (int) sizeof( type );
 #endif
 
     ret = (*client_fd = (int) accept( *bind_fd, (struct sockaddr *) &client_addr, &n ));
@@ -162,10 +159,7 @@ int main()
 
     io = fev_add_io(&fev, server_fd, FEV_EVENT_READ, on_client, 0);
 
-
-    while (1) {
-        fev_run(&fev);
-    }
+    while (fev_run(&fev) == 0);
 
     r = 0;
 cleanup:
