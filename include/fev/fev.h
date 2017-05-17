@@ -40,7 +40,7 @@ struct fev_timer {
     void *arg;
 };
 
-typedef struct fev{
+typedef struct fev {
 
     int min_interval;
     uint64_t cl;
