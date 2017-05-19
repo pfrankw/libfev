@@ -10,6 +10,8 @@
 #include <fev/fev.h>
 #include <fev/time.h>
 
+int g_run = 1;
+
 static int accept_fd( int *bind_fd,
                         int *client_fd,
                         void *client_ip, size_t buf_size, size_t *ip_len )
@@ -140,8 +142,6 @@ static void on_client(struct fev *fev, struct fev_io *io, uint8_t rev, void *arg
 cleanup:
     return;
 }
-
-int g_run = 1;
 
 static void sig_handler(int sig)
 {
