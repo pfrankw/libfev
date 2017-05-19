@@ -255,12 +255,15 @@ static int io_run_cb(flist_node_t *io_node, void *arg)
 {
     fev_t *fev = arg;
     struct fev_io *io = 0;
+    uint8_t rev;
 
     io = io_node->item;
 
     if (io->rev != 0) {
-        io->cb(fev, io, io->rev, io->arg);
-        io->rev = 0;
+    	rev = io->rev;
+    	io->rev = 0;
+        io->cb(fev, io, rev, io->arg);
+        // io might have been freed now
     }
 
     return 0;
