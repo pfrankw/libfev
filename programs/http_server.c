@@ -141,14 +141,21 @@ cleanup:
     return;
 }
 
+int g_run = 1;
+
+static void sig_handler(int sig)
+{
+	g_run = 0;
+}
+
 int main()
 {
     int r = -1;
     int server_fd = -1;
     fev_t fev;
-    struct fev_io *io;
 
     signal(SIGPIPE, SIG_IGN);
+    signal(SIGINT, sig_handler);
 
     fev_init(&fev);
 
@@ -157,9 +164,9 @@ int main()
 
     fcntl( server_fd, F_SETFL, fcntl( server_fd, F_GETFL ) | O_NONBLOCK );
 
-    io = fev_add_io(&fev, server_fd, FEV_EVENT_READ, on_client, 0);
+    fev_add_io(&fev, server_fd, FEV_EVENT_READ, on_client, 0);
 
-    while (fev_run(&fev) == 0);
+    while (g_run && fev_run(&fev) == 0);
 
     r = 0;
 cleanup:
