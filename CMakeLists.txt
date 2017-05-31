@@ -15,7 +15,7 @@ endif()
 
 message("Current CMake build type is ${CMAKE_BUILD_TYPE}")
 
-include_directories("include" "${CMAKE_SOURCE_DIR}/ext/libflist/include" "${CMAKE_SOURCE_DIR}/ext/uthash/include")
+include_directories("include" "${CMAKE_SOURCE_DIR}/ext/uthash/include")
 
 add_subdirectory(src)
 add_subdirectory(programs)
