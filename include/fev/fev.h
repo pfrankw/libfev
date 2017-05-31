@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#include <flist/flist.h>
-
 #include <fev/config.h>
 
 // Events

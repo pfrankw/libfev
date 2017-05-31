@@ -92,7 +92,7 @@ static int bind_fd(int *fd, const char *bind_ip, const char *port)
         if( bind( *fd, cur->ai_addr, (int) cur->ai_addrlen ) != 0 )
             goto cleanup;
 
-        if( listen( *fd, 100 ) != 0 )
+        if( listen( *fd, 10 ) != 0 )
             goto cleanup;
 
         r = 0;

@@ -1,6 +1,7 @@
 #include <limits.h>
 #include <string.h>
 #include <poll.h>
+#include <stdlib.h>
 
 #include "utlist.h"
 
@@ -28,8 +29,6 @@ void fev_free(fev_t *fev)
 
     io_free_all(fev);
     timer_free_all(fev);
-    //flist_free(fev->io);
-    //flist_free(fev->timers);
 
     memset(fev, 0, sizeof(fev_t));
 
