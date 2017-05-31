@@ -110,7 +110,7 @@ cleanup:
     return r;
 }
 
-static void on_client_data(struct fev *fev, struct fev_io *io, uint8_t rev, void *arg)
+static void on_client_data(fev_t *fev, fev_io_t *io, uint8_t rev, void *arg)
 {
     char buf[4096];
     char *http_res = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";
@@ -125,9 +125,8 @@ static void on_client_data(struct fev *fev, struct fev_io *io, uint8_t rev, void
     fev_del_io(fev, io);
 }
 
-static void on_client(struct fev *fev, struct fev_io *io, uint8_t rev, void *arg)
+static void on_client(fev_t *fev, fev_io_t *io, uint8_t rev, void *arg)
 {
-
 
     int client_fd;
 

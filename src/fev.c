@@ -2,18 +2,18 @@
 #include <string.h>
 #include <poll.h>
 
+#include "utlist.h"
+
 #include "fev/fev.h"
 #include "fev/time.h"
 
 static void io_free_all(fev_t *fev);
 static void timer_free_all(fev_t *fev);
-static int get_min_interval(flist_t *timers);
+static int get_min_interval(fev_timer_t *timers);
 
 int fev_init(fev_t *fev)
 {
     memset(fev, 0, sizeof(fev_t));
-    fev->io = flist_new();
-    fev->timers = flist_new();
 
     // With a 0 element list, the function returns INT_MAX
     fev->min_interval = get_min_interval(fev->timers);
@@ -28,16 +28,16 @@ void fev_free(fev_t *fev)
 
     io_free_all(fev);
     timer_free_all(fev);
-    flist_free(fev->io);
-    flist_free(fev->timers);
+    //flist_free(fev->io);
+    //flist_free(fev->timers);
 
     memset(fev, 0, sizeof(fev_t));
 
 }
 
-static struct fev_io* io_new(int fd, uint8_t ev, fev_io_cb cb, void *arg)
+static fev_io_t* io_new(int fd, uint8_t ev, fev_io_cb cb, void *arg)
 {
-    struct fev_io *io = calloc(1, sizeof(struct fev_io));
+    fev_io_t *io = calloc(1, sizeof(fev_io_t));
 
     io->fd = fd;
     io->ev = ev;
@@ -47,9 +47,9 @@ static struct fev_io* io_new(int fd, uint8_t ev, fev_io_cb cb, void *arg)
     return io;
 }
 
-static struct fev_timer* timer_new(uint32_t interval, uint16_t flags, fev_timer_cb cb, void *arg)
+static fev_timer_t* timer_new(uint32_t interval, uint16_t flags, fev_timer_cb cb, void *arg)
 {
-    struct fev_timer *timer = calloc(1, sizeof(struct fev_timer));
+    fev_timer_t *timer = calloc(1, sizeof(fev_timer_t));
 
     timer->last_call = fev_clock();
     timer->interval = interval;
@@ -60,7 +60,7 @@ static struct fev_timer* timer_new(uint32_t interval, uint16_t flags, fev_timer_
     return timer;
 }
 
-static void io_free(struct fev_io *io)
+static void io_free(fev_io_t *io)
 {
     if (!io)
         return;
@@ -68,7 +68,7 @@ static void io_free(struct fev_io *io)
     free(io);
 }
 
-static void timer_free(struct fev_timer *timer)
+static void timer_free(fev_timer_t *timer)
 {
     if (!timer)
         return;
@@ -79,58 +79,61 @@ static void timer_free(struct fev_timer *timer)
 static void io_free_all(fev_t *fev)
 {
 
-    flist_node_t *cur = 0;
+    fev_io_t *cur, *tmp;
 
-    for (cur = fev->io->start; cur; cur = cur->next)
-        io_free(cur->item);
+    LL_FOREACH_SAFE(fev->io, cur, tmp) {
+        LL_DELETE(fev->io, cur);
+        io_free(cur);
+    }
 }
 
 static void timer_free_all(fev_t *fev)
 {
-    flist_node_t *cur = 0;
+    struct fev_timer *cur, *tmp;
 
-    for (cur = fev->timers->start; cur; cur = cur->next)
-        timer_free(cur->item);
+    LL_FOREACH_SAFE(fev->timers, cur, tmp) {
+        LL_DELETE(fev->timers, cur);
+        timer_free(cur);
+    }
 }
 
-static int get_min_interval(flist_t *timers)
+static int get_min_interval(fev_timer_t *timers)
 {
     int min = INT_MAX;
-    flist_node_t *cur = 0;
+    fev_timer_t *cur = 0;
 
-    for (cur=timers->start; cur; cur=cur->next) {
-        struct fev_timer *timer = cur->item;
-        if (timer->interval < min)
-            min = timer->interval;
+    LL_FOREACH(timers, cur) {
+      if (cur->interval < min)
+        min = cur->interval;
     }
 
     return min;
 }
 
-struct fev_io* fev_add_io(fev_t *fev, int fd, uint8_t ev, fev_io_cb cb, void *arg)
+fev_io_t* fev_add_io(fev_t *fev, int fd, uint8_t ev, fev_io_cb cb, void *arg)
 {
-    struct fev_io *io = 0;
+    fev_io_t *io = 0;
 
     if (!cb)
         goto cleanup;
 
     io = io_new(fd, ev, cb, arg);
 
-    flist_insert(fev->io, io);
+    LL_PREPEND(fev->io, io);
 
 cleanup:
     return io;
 }
 
-struct fev_timer* fev_add_timer(fev_t *fev, uint32_t interval, uint16_t flags, fev_timer_cb cb, void *arg)
+fev_timer_t* fev_add_timer(fev_t *fev, uint32_t interval, uint16_t flags, fev_timer_cb cb, void *arg)
 {
-    struct fev_timer *timer = 0;
+    fev_timer_t *timer = 0;
 
     if (!cb)
         goto cleanup;
 
     timer = timer_new(interval, flags, cb, arg);
-    flist_insert(fev->timers, timer);
+    LL_PREPEND(fev->timers, timer);
 
     fev->min_interval = get_min_interval(fev->timers);
 
@@ -138,56 +141,44 @@ cleanup:
     return timer;
 }
 
-void fev_del_io(fev_t *fev, struct fev_io *io)
+void fev_del_io(fev_t *fev, fev_io_t *io)
 {
-    flist_node_t *io_node = flist_search(fev->io, io);
-    if (!io_node)
-        return;
-
+    LL_DELETE(fev->io, io);
     io_free(io);
-    flist_remove(fev->io, io);
 }
 
-void fev_del_timer(fev_t *fev, struct fev_timer *timer)
+void fev_del_timer(fev_t *fev, fev_timer_t *timer)
 {
 
-    flist_node_t *timer_node = flist_search(fev->timers, timer);
-    if (!timer_node)
-        return;
+    LL_DELETE(fev->timers, timer);
 
     timer_free(timer);
-    flist_remove(fev->timers, timer);
 
     fev->min_interval = get_min_interval(fev->timers);
 
 }
 
-static int timer_run_cb(flist_node_t *timer_node, void *arg)
-{
-    fev_t *fev = arg;
-    struct fev_timer *timer = timer_node->item;
-
-
-    if ((fev->cl - timer->last_call) >= timer->interval) {
-
-        timer->cb(timer->arg);
-
-        if (timer->flags & FEV_TIMER_FLAG_ONCE)
-            fev_del_timer(fev, timer);
-        else
-            timer->last_call = fev->cl;
-
-    }
-
-    return 0;
-}
-
 static void timers_run(fev_t *fev)
 {
-    flist_iterate(fev->timers, timer_run_cb, fev);
+    fev_timer_t *timer, *tmp;
+
+    LL_FOREACH_SAFE(fev->timers, timer, tmp) {
+
+        if ((fev->cl - timer->last_call) >= timer->interval) {
+
+            timer->cb(timer->arg);
+
+            if (timer->flags & FEV_TIMER_FLAG_ONCE)
+                fev_del_timer(fev, timer);
+            else
+                timer->last_call = fev->cl;
+
+        }
+    }
+
 }
 
-static void set_pollfd_by_io(struct pollfd *pfd, struct fev_io *io)
+static void set_pollfd_by_io(struct pollfd *pfd, fev_io_t *io)
 {
     pfd->fd = io->fd;
 
@@ -198,7 +189,7 @@ static void set_pollfd_by_io(struct pollfd *pfd, struct fev_io *io)
         pfd->events |= POLLOUT;
 }
 
-static void set_io_by_pollfd(struct fev_io *io, struct pollfd *pfd)
+static void set_io_by_pollfd(fev_io_t *io, struct pollfd *pfd)
 {
     if (pfd->revents & POLLIN)
         io->rev |= FEV_EVENT_READ;
@@ -215,14 +206,17 @@ static int io_poll(fev_t *fev)
 
     int r = -1, rp;
     struct pollfd *pfd = 0;
-    flist_node_t *cur = 0;
-    size_t i = 0;
+    fev_io_t *cur = 0;
+    size_t i, n_io;
 
-    pfd = calloc(fev->io->n_nodes, sizeof(struct pollfd));
+    LL_COUNT(fev->io, cur, n_io);
 
-    for (cur = fev->io->start; cur; cur = cur->next, i++) {
-        struct fev_io *io = cur->item;
-        set_pollfd_by_io(&pfd[i], io);
+    pfd = calloc(n_io, sizeof(struct pollfd));
+
+    i = 0;
+    LL_FOREACH(fev->io, cur){
+        set_pollfd_by_io(&pfd[i], cur);
+        i++;
     }
 
     rp = poll(pfd, i, fev->min_interval);
@@ -232,15 +226,18 @@ static int io_poll(fev_t *fev)
     else if (rp < 0)
         goto cleanup;
 
-    for (cur = fev->io->start, i=0; cur && rp; cur = cur->next, i++) {
-
-        struct fev_io *io = cur->item;
+    //for (cur = fev->io->start, i=0; cur && rp; cur = cur->next, i++) {
+    i = 0;
+    LL_FOREACH(fev->io, cur) {
 
         if (pfd[i].revents != 0) { // If there are revents
-            set_io_by_pollfd(io, &pfd[i]);
+            set_io_by_pollfd(cur, &pfd[i]);
             rp--; // rp is the counter of pollfd structures with revents set.
             // We can use rp as counter.
         }
+
+        if (rp == 0)
+            break;
 
     }
 
@@ -251,27 +248,22 @@ cleanup:
     return r;
 }
 
-static int io_run_cb(flist_node_t *io_node, void *arg)
-{
-    fev_t *fev = arg;
-    struct fev_io *io = 0;
-    uint8_t rev;
-
-    io = io_node->item;
-
-    if (io->rev != 0) {
-    	rev = io->rev;
-    	io->rev = 0;
-        io->cb(fev, io, rev, io->arg);
-        // io might have been freed now
-    }
-
-    return 0;
-}
-
 static void io_run(fev_t *fev)
 {
-    flist_iterate(fev->io, io_run_cb, fev);
+    fev_io_t *io, *tmp;
+    uint8_t rev;
+
+    LL_FOREACH_SAFE(fev->io, io, tmp) {
+
+        if (io->rev != 0) {
+        	rev = io->rev;
+        	io->rev = 0;
+            io->cb(fev, io, rev, io->arg);
+            // io might have been freed now
+        }
+
+    }
+
 }
 
 int fev_run(fev_t *fev)

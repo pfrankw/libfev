@@ -18,10 +18,13 @@ enum {
     FEV_TIMER_FLAG_ONCE = 1 << 0,
 };
 
-struct fev_io;
-struct fev;
 
-typedef void (*fev_io_cb)(struct fev *fev, struct fev_io *io, uint8_t rev, void *arg);
+
+typedef struct fev_io fev_io_t;
+typedef struct fev_timer fev_timer_t;
+typedef struct fev fev_t;
+
+typedef void (*fev_io_cb)(fev_t *fev, fev_io_t *io, uint8_t rev, void *arg);
 typedef void (*fev_timer_cb)(void *arg);
 
 struct fev_io {
@@ -30,6 +33,7 @@ struct fev_io {
     uint8_t rev; // Events set by select()/poll() wrapper
     fev_io_cb cb; // Callback if event
     void *arg;
+    struct fev_io *next;
 };
 
 struct fev_timer {
@@ -38,16 +42,17 @@ struct fev_timer {
     uint16_t flags;
     fev_timer_cb cb;
     void *arg;
+    struct fev_timer *next;
 };
 
-typedef struct fev {
+struct fev {
 
     int min_interval;
     uint64_t cl;
-    flist_t *io;
-    flist_t *timers;
+    fev_io_t *io;
+    fev_timer_t *timers;
 
-} fev_t;
+};
 
 int fev_init(fev_t *fev);
 void fev_free(fev_t *fev);
